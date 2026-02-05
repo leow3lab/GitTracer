@@ -5,40 +5,25 @@ from datetime import datetime
 import dash_bootstrap_components as dbc
 
 
+def _format_timestamp(timestamp):
+    """Format Unix timestamp to readable string."""
+    return datetime.fromtimestamp(timestamp or 0).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def create_commit_detail_view(commit_data):
-    """
-    Create a detailed view of a single commit.
-
-    Args:
-        commit_data: Dictionary with commit data including:
-            - commit: Full commit hash
-            - subject: Commit subject/message
-            - author: Author name
-            - email: Author email
-            - timestamp: Unix timestamp
-            - diff: Git diff output
-
-    Returns:
-        html.Div: Detailed commit view
-    """
+    """Create a detailed view of a single commit."""
     if not commit_data:
         return html.Div("No commit selected.", className="text-muted p-4")
 
-    dt_object = datetime.fromtimestamp(commit_data.get("timestamp", 0))
-    formatted_time = dt_object.strftime("%Y-%m-%d %H:%M:%S")
-
+    h = commit_data.get("commit", "unknown")[:8]
     return html.Div(
         [
-            # Commit Header
             dbc.Card(
                 [
                     dbc.CardBody(
                         [
                             html.H4(
-                                [
-                                    html.Span("Commit ", className="text-muted"),
-                                    html.Code(commit_data.get("commit", "unknown")[:8]),
-                                ],
+                                [html.Span("Commit ", className="text-muted"), html.Code(h)],
                                 className="mb-3",
                             ),
                             html.H5(commit_data.get("subject", "No Subject"), className="mb-3"),
@@ -59,7 +44,10 @@ def create_commit_detail_view(commit_data):
                             html.Div(
                                 [
                                     html.Strong("Date: "),
-                                    html.Span(formatted_time, className="text-muted"),
+                                    html.Span(
+                                        _format_timestamp(commit_data.get("timestamp")),
+                                        className="text-muted",
+                                    ),
                                 ],
                                 className="mb-0",
                             ),
@@ -68,7 +56,6 @@ def create_commit_detail_view(commit_data):
                 ],
                 className="sketch-card mb-3",
             ),
-            # Code Changes Section
             dbc.Card(
                 [
                     dbc.CardHeader("Code Changes", className="sketch-header"),
@@ -94,50 +81,23 @@ def create_commit_detail_view(commit_data):
 
 
 def create_commit_markdown(commit_data, idx):
-    """
-    Generate markdown representation of a commit.
+    """Generate markdown representation of a commit."""
+    return f"""### [{idx}] Commit: {commit_data.get('commit', 'Unknown')}
+**Subject:** {commit_data.get('subject', 'No Subject')}
+**Author:** {commit_data.get('author', 'Unknown')} (<{commit_data.get('email', 'unknown')}>)
+**Date:** {_format_timestamp(commit_data.get('timestamp'))}
 
-    Args:
-        commit_data: Dictionary with commit data
-        idx: Commit index number
+---
 
-    Returns:
-        str: Markdown formatted commit
-    """
-    dt_object = datetime.fromtimestamp(commit_data.get("timestamp", 0))
-    formatted_time = dt_object.strftime("%Y-%m-%d %H:%M:%S")
-
-    md_lines = [
-        f"### [{idx}] Commit: {commit_data.get('commit', 'Unknown')}",
-        f"**Subject:** {commit_data.get('subject', 'No Subject')}  ",
-        f"**Author:** {commit_data.get('author', 'Unknown')} (<{commit_data.get('email', 'unknown')}>)  ",
-        f"**Date:** {formatted_time}",
-        "",
-        "---",
-        "",
-        "#### Code Changes",
-        "```diff",
-        commit_data.get("diff", "No code changes in this commit."),
-        "```",
-    ]
-
-    return "\n".join(md_lines)
+#### Code Changes
+```diff
+{commit_data.get("diff", "No code changes in this commit.")}
+```"""
 
 
 def create_commit_detail_with_markdown(commit_data, idx):
-    """
-    Create a commit detail view using Markdown rendering.
-
-    Args:
-        commit_data: Dictionary with commit data
-        idx: Commit index number
-
-    Returns:
-        dcc.Markdown: Markdown rendered commit detail
-    """
-    markdown_content = create_commit_markdown(commit_data, idx)
-
+    """Create a commit detail view using Markdown rendering."""
     return html.Div(
-        [dcc.Markdown(markdown_content, dangerously_allow_html=True)],
+        [dcc.Markdown(create_commit_markdown(commit_data, idx), dangerously_allow_html=True)],
         className="p-3 bg-light rounded",
     )

@@ -1,107 +1,124 @@
 """Callbacks for repository analysis functionality."""
 
 import os
-import sys
-from dash import Input, Output, State
+import re
+from dash import Input, Output, State, html
 import dash_bootstrap_components as dbc
 
-# Import GitDataFetcher from root app.py
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 try:
-    from app import GitDataFetcher
+    from frontend.git_cmd import GitDataFetcher
 except ImportError:
     GitDataFetcher = None
 
 
+def is_git_url(value: str) -> bool:
+    """Lightweight check for common Git URL formats."""
+    if not isinstance(value, str):
+        return False
+    v = value.strip()
+    return (
+        v.startswith(("http://", "https://", "ssh://", "git://", "file://"))
+        or re.match(r"^[\w.-]+@[\w.-]+:.*", v) is not None
+    )
+
+
 def validate_repo_path(path):
-    """
-    Validate that a repository path exists and is a git repository.
-
-    Args:
-        path: Path to validate
-
-    Returns:
-        tuple: (is_valid, error_message)
-    """
+    """Validate that a repository path exists and is a git repository."""
     if not path:
         return False, "Repository path is required"
+
+    if is_git_url(path):
+        return True, None
 
     if not os.path.exists(path):
         return False, f"Path does not exist: {path}"
 
-    git_dir = os.path.join(path, ".git")
-    if not os.path.exists(git_dir):
+    if not os.path.exists(os.path.join(path, ".git")):
         return False, f"Not a Git repository (no .git directory found)"
 
     return True, None
 
 
 def register_callbacks(app):
-    """
-    Register repository analysis callbacks with the Dash app.
-
-    Args:
-        app: Dash application instance
-    """
+    """Register repository analysis callbacks with the Dash app."""
 
     @app.callback(
-        [
-            Output("stored-commits", "data"),
-            Output("status-container", "children"),
-            Output("commit-table-container", "children"),
-        ],
-        [Input("btn-fetch-commits", "n_clicks")],
-        [
-            State("repo-path-input", "value"),
-            State("branch-name-input", "value"),
-            State("top-k-input", "value"),
-        ],
-        prevent_initial_call=False,
+        Output("stored-commits", "data"),
+        Output("status-container", "children"),
+        Output("trajectory-container", "children"),
+        Output("branches-container", "children"),
+        Input("btn-fetch-commits", "n_clicks"),
+        State("repo-path-input", "value"),
+        State("branch-name-input", "value"),
+        State("top-k-input", "value"),
+        prevent_initial_call=True,
     )
     def fetch_commits(n_clicks, repo_path, branch, top_k):
         """Fetch commits from the specified repository."""
-        # Initial state - no clicks yet
-        if n_clicks is None or n_clicks == 0:
-            return None, "", "Enter a repository path and click 'Fetch & Analyze' to begin."
-
-        # Validate inputs
         if not repo_path:
-            return None, dbc.Alert("Please enter a repository path.", color="danger"), ""
+            return None, dbc.Alert("Please enter a repository path.", color="danger"), "", ""
 
         is_valid, error_msg = validate_repo_path(repo_path)
         if not is_valid:
-            return None, dbc.Alert(error_msg, color="danger"), ""
+            return None, dbc.Alert(error_msg, color="danger"), "", ""
 
-        # Fetch commits using GitDataFetcher
         if GitDataFetcher is None:
-            return None, dbc.Alert("GitDataFetcher not available", color="warning"), ""
+            return None, dbc.Alert("GitDataFetcher not available", color="warning"), "", ""
 
+        fetcher = None
         try:
-            fetcher = GitDataFetcher(repo_path, branch, top_k)
+            fetcher = GitDataFetcher(repo_path, branch or "main", top_k or 50)
             commits, error = fetcher.fetch_commits()
 
             if error:
-                return None, dbc.Alert(f"Error fetching commits: {error}", color="danger"), ""
+                return None, dbc.Alert(f"Error: {error}", color="danger"), "", ""
 
             if not commits:
                 return (
                     None,
                     dbc.Alert(f"No commits found in branch '{branch}'", color="warning"),
                     "",
+                    "",
                 )
 
-            # Import here to avoid circular dependency
-            from frontend.layouts.components import create_commit_table
+            # Get branches
+            branches = fetcher.get_branches()
 
-            table = create_commit_table(commits)
+            # Create branches display
+            branches_html = (
+                html.Div(
+                    [
+                        html.H6("Available Branches:", className="mt-3 mb-2"),
+                        html.Div(
+                            [
+                                html.Span(b, className="badge bg-secondary me-1 mb-1")
+                                for b in branches[:20]  # Show first 20
+                            ],
+                            className="flex-wrap",
+                        ),
+                        html.Small(f"Total: {len(branches)} branches", className="text-muted"),
+                    ]
+                )
+                if branches
+                else ""
+            )
+
+            from frontend.layouts.components import create_trajectory_view
 
             return (
                 commits,
                 dbc.Alert(
-                    f"Successfully loaded {len(commits)} commits from '{branch}'", color="success"
+                    f"Successfully loaded {len(commits)} commits from '{fetcher.branch}'",
+                    color="success",
                 ),
-                table,
+                create_trajectory_view(commits),
+                branches_html,
             )
-
         except Exception as e:
-            return None, dbc.Alert(f"Unexpected error: {str(e)}", color="danger"), ""
+            err_msg = str(e)
+            # Add helpful tips for common errors
+            if "timed out" in err_msg.lower() or "network" in err_msg.lower():
+                err_msg += "\n\n💡 Tip: If you're in China, try setting a proxy:"
+                err_msg += "\n   git config --global http.proxy http://127.0.0.1:7890"
+                err_msg += "\n   git config --global https.proxy http://127.0.0.1:7890"
+            return None, dbc.Alert(err_msg, color="danger"), "", ""

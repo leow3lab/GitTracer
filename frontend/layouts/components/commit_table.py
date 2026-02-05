@@ -1,24 +1,38 @@
 """Commit table component for displaying Git commit history."""
 
-from dash import dash_table, html
+from dash import dash_table, html, dcc
 import dash_bootstrap_components as dbc
+
+_TABLE_STYLES = {
+    "table": {"overflowX": "auto", "border": "2px solid #34495e"},
+    "cell": {
+        "textAlign": "left",
+        "padding": "12px",
+        "fontFamily": "'Comic Sans MS', 'Chalkboard SE', sans-serif",
+        "fontSize": "14px",
+    },
+    "header": {
+        "backgroundColor": "#ecf0f1",
+        "fontWeight": "bold",
+        "borderBottom": "3px solid #34495e",
+    },
+    "data": {"backgroundColor": "white", "borderBottom": "1px solid #ddd"},
+}
+_COLUMN_WIDTHS = [
+    {"if": {"column_id": "idx"}, "width": "50px"},
+    {"if": {"column_id": "commit"}, "width": "120px"},
+    {"if": {"column_id": "author"}, "width": "150px"},
+]
+_COLUMNS = [
+    {"name": "#", "id": "idx", "type": "numeric"},
+    {"name": "Hash", "id": "commit", "type": "text"},
+    {"name": "Subject", "id": "subject", "type": "text"},
+    {"name": "Author", "id": "author", "type": "text"},
+]
 
 
 def create_commit_table(commits_data):
-    """
-    Create a data table component for displaying commits.
-
-    Args:
-        commits_data: List of commit dictionaries with keys:
-            - idx: Commit index
-            - commit: Commit hash
-            - subject: Commit subject/message
-            - author: Author name
-            - timestamp: Unix timestamp
-
-    Returns:
-        dash_table.DataTable: Formatted data table
-    """
+    """Create a data table component for displaying commits."""
     if not commits_data:
         return html.Div(
             [
@@ -30,26 +44,13 @@ def create_commit_table(commits_data):
 
     return dash_table.DataTable(
         id="commit-table",
-        columns=[
-            {"name": "#", "id": "idx", "type": "numeric", "width": "50px"},
-            {"name": "Hash", "id": "commit", "type": "text", "width": "120px"},
-            {"name": "Subject", "id": "subject", "type": "text"},
-            {"name": "Author", "id": "author", "type": "text", "width": "150px"},
-        ],
+        columns=_COLUMNS,
         data=commits_data,
-        style_table={"overflowX": "auto", "border": "2px solid #34495e"},
-        style_cell={
-            "textAlign": "left",
-            "padding": "12px",
-            "fontFamily": "'Comic Sans MS', 'Chalkboard SE', sans-serif",
-            "fontSize": "14px",
-        },
-        style_header={
-            "backgroundColor": "#ecf0f1",
-            "fontWeight": "bold",
-            "borderBottom": "3px solid #34495e",
-        },
-        style_data={"backgroundColor": "white", "borderBottom": "1px solid #ddd"},
+        style_table=_TABLE_STYLES["table"],
+        style_cell=_TABLE_STYLES["cell"],
+        style_header=_TABLE_STYLES["header"],
+        style_data=_TABLE_STYLES["data"],
+        style_cell_conditional=_COLUMN_WIDTHS,
         style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#fafafa"}],
         row_selectable="single",
         page_size=25,
@@ -63,35 +64,27 @@ def create_commit_table(commits_data):
 
 
 def create_commits_tab():
-    """
-    Create the commits tab container.
-
-    Returns:
-        html.Div: Container for the commits tab
-    """
+    """Create the commits tab container with loading wrapper."""
     return html.Div(
         [
-            html.Div(
-                [
-                    html.H4("Commit History", className="mb-3"),
+            html.H4("Commit History", className="mb-3"),
+            dcc.Loading(
+                id="loading-commit-table",
+                type="default",
+                children=[
                     html.Div(
                         id="commit-table-container",
                         children=[html.P("No repository analyzed yet.", className="text-muted")],
-                    ),
-                ]
-            )
+                    )
+                ],
+            ),
         ],
         id="commits-tab-content",
     )
 
 
 def create_commits_detail_view():
-    """
-    Create the commit detail view container.
-
-    Returns:
-        html.Div: Container for displaying selected commit details
-    """
+    """Create the commit detail view container."""
     return html.Div(
         [
             html.H4("Commit Details", className="mb-3"),
@@ -101,5 +94,5 @@ def create_commits_detail_view():
                 style={"minHeight": "400px", "maxHeight": "700px", "overflowY": "auto"},
                 children="Select a commit to view details.",
             ),
-        ]
+        ],
     )

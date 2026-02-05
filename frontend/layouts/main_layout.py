@@ -3,22 +3,19 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from frontend.styles import get_stylesheet
-from frontend.layouts.components import create_repo_config
+from frontend.layouts.components import (
+    create_repo_config,
+    create_trajectory_view,
+)
 
 
 def create_layout():
-    """
-    Create the main layout for GitTracer app.
-
-    Returns:
-        dbc.Container: The root layout container
-    """
+    """Create the main layout for GitTracer app."""
     return dbc.Container(
         [
             dcc.Store(id="stored-commits"),
             dcc.Store(id="stored-trajectories"),
-            dcc.Store(id="selected-commit"),
-            # Header Section
+            # Header
             dbc.Row(
                 [
                     dbc.Col(
@@ -39,13 +36,24 @@ def create_layout():
                 ],
                 className="mb-4",
             ),
-            # Main Content Area
+            # Main Content
             dbc.Row(
                 [
-                    # Left Column - Configuration
-                    dbc.Col([create_repo_config()], width=4, lg=4),
-                    # Right Column - Tabs and Content
-                    dbc.Col([html.Div(id="main-content-area")], width=8, lg=8),
+                    # Left - Configuration
+                    dbc.Col(
+                        [
+                            create_repo_config(),
+                            html.Div(id="branches-container", className="mt-3"),
+                        ],
+                        width=4,
+                        lg=4,
+                    ),
+                    # Right - Trajectory View
+                    dbc.Col(
+                        [html.Div(id="trajectory-container", children=create_trajectory_view([]))],
+                        width=8,
+                        lg=8,
+                    ),
                 ]
             ),
             # Status Messages
@@ -57,11 +65,5 @@ def create_layout():
 
 
 def get_external_stylesheets():
-    """
-    Get external stylesheets for the Dash app.
-
-    Returns:
-        list: List of stylesheet paths/URLs
-    """
-    # Use bootstrap as base, will override with custom CSS
+    """Get external stylesheets for the Dash app."""
     return [dbc.themes.FLATLY, get_stylesheet()]

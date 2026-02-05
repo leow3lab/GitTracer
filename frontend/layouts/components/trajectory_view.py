@@ -2,30 +2,32 @@
 
 from dash import html, dcc
 import dash_bootstrap_components as dbc
+from datetime import datetime
+
+_TYPE_COLORS = {
+    "feature": "primary",
+    "bug_fix": "danger",
+    "refactor": "warning",
+    "docs": "info",
+    "test": "success",
+}
 
 
-def create_trajectory_view(trajectories_data):
-    """
-    Create a trajectory visualization view.
+def _format_timestamp(ts):
+    """Format Unix timestamp to readable string."""
+    if not ts:
+        return "Unknown"
+    return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
 
-    Args:
-        trajectories_data: List of trajectory dictionaries with keys:
-            - id: Trajectory ID
-            - type: 'feature' or 'bug_fix'
-            - title: Trajectory title
-            - description: Brief description
-            - commit_count: Number of commits in trajectory
-            - commits: List of commit hashes
 
-    Returns:
-        html.Div: Container for trajectory visualization
-    """
-    if not trajectories_data:
+def create_trajectory_view(commits_data):
+    """Create trajectory view - shows commits when no AI analysis yet."""
+    if not commits_data:
         return html.Div(
             [
-                html.H4("No Trajectories Found", className="text-center text-muted mt-5"),
+                html.H4("No Data Yet", className="text-center text-muted mt-5"),
                 html.P(
-                    "Analyze a repository to identify feature and bug-fix trajectories.",
+                    "Enter a repository path and click 'Fetch & Analyze' to begin.",
                     className="text-center",
                 ),
                 html.Div(
@@ -35,53 +37,103 @@ def create_trajectory_view(trajectories_data):
             ]
         )
 
-    trajectory_cards = []
-    for traj in trajectories_data:
-        card = create_trajectory_card(traj)
-        trajectory_cards.append(card)
-
+    # Show commits as timeline items
     return html.Div(
         [
-            html.H4("Identified Trajectories", className="mb-4"),
-            html.Div(trajectory_cards, id="trajectory-cards-container"),
+            html.H4(f"Commits ({len(commits_data)})", className="mb-4"),
+            html.Div(
+                [create_commit_card(c, i) for i, c in enumerate(commits_data)],
+                className="sketch-timeline",
+            ),
         ]
     )
 
 
+def create_commit_card(commit, idx):
+    """Create a single commit card with hash, time, and view details button."""
+    commit_hash = commit.get("commit", "unknown")
+    short_hash = commit_hash[:8]
+    timestamp = commit.get("timestamp", 0)
+    author = commit.get("author", "Unknown")
+    subject = commit.get("subject", "No subject")
+
+    return dbc.Card(
+        [
+            dbc.CardBody(
+                [
+                    # Header: Hash + Time
+                    html.Div(
+                        [
+                            html.Span(f"#{idx + 1}", className="badge bg-secondary me-2"),
+                            html.Code(short_hash, className="me-2"),
+                            html.Small(_format_timestamp(timestamp), className="text-muted"),
+                        ],
+                        className="mb-2",
+                    ),
+                    # Subject
+                    html.P(subject, className="mb-1", style={"fontWeight": "500"}),
+                    # Author
+                    html.Small(f"By {author}", className="text-muted"),
+                    # View Details button
+                    html.Div(
+                        [
+                            html.Hr(className="my-2"),
+                            dbc.Button(
+                                "View Details",
+                                id={"type": "btn-details", "index": idx},
+                                color="outline-primary",
+                                size="sm",
+                                className="sketch-button",
+                            ),
+                            html.Div(
+                                id={"type": "details-content", "index": idx},
+                                className="mt-3 sketch-code p-3",
+                                style={"display": "none"},
+                            ),
+                        ]
+                    ),
+                ]
+            )
+        ],
+        className="sketch-timeline-item",
+    )
+
+
+def _create_markdown_for_commit(commit):
+    """Create markdown content for a commit."""
+    dt = datetime.fromtimestamp(commit.get("timestamp", 0))
+    return f"""### Commit: {commit.get('commit', 'unknown')[:12]}
+
+**Subject:** {commit.get('subject', 'No subject')}
+
+**Author:** {commit.get('author', 'Unknown')} <{commit.get('email', 'unknown')}>
+
+**Date:** {dt.strftime('%Y-%m-%d %H:%M:%S')}
+
+---
+
+#### Code Changes
+
+```diff
+{commit.get('diff', 'No diff available')}
+```
+"""
+
+
 def create_trajectory_card(trajectory):
-    """
-    Create a single trajectory card.
-
-    Args:
-        trajectory: Dictionary with trajectory data
-
-    Returns:
-        dbc.Card: Card component with trajectory info
-    """
-    type_badge_color = {
-        "feature": "primary",
-        "bug_fix": "danger",
-        "refactor": "warning",
-        "docs": "info",
-        "test": "success",
-    }.get(trajectory.get("type", "unknown"), "secondary")
+    """Create a single trajectory card (for future AI analysis)."""
+    color = _TYPE_COLORS.get(trajectory.get("type", "unknown"), "secondary")
+    t = trajectory.get("type", "unknown").replace("_", " ").title()
 
     return dbc.Card(
         [
             dbc.CardHeader(
                 [
-                    html.Div(
-                        [
-                            html.Span(
-                                trajectory.get("type", "unknown").replace("_", " ").title(),
-                                className=f"badge bg-{type_badge_color} me-2",
-                            ),
-                            html.H5(
-                                trajectory.get("title", "Untitled Trajectory"),
-                                className="d-inline-block mb-0",
-                            ),
-                        ]
-                    )
+                    html.Span(t, className=f"badge bg-{color} me-2"),
+                    html.H5(
+                        trajectory.get("title", "Untitled Trajectory"),
+                        className="d-inline-block mb-0",
+                    ),
                 ]
             ),
             dbc.CardBody(
@@ -108,42 +160,4 @@ def create_trajectory_card(trajectory):
             ),
         ],
         className="sketch-card mb-3",
-    )
-
-
-def create_trajectory_timeline(commits):
-    """
-    Create a timeline view for a trajectory.
-
-    Args:
-        commits: List of commit objects in chronological order
-
-    Returns:
-        html.Div: Timeline component
-    """
-    timeline_items = []
-    for i, commit in enumerate(commits):
-        item = dbc.Card(
-            [
-                dbc.CardBody(
-                    [
-                        html.H6(
-                            f"Commit {i+1}: {commit.get('commit', 'unknown')[:8]}", className="mb-1"
-                        ),
-                        html.P(
-                            commit.get("subject", "No subject"), className="mb-2 small text-muted"
-                        ),
-                        html.Small(f"Author: {commit.get('author', 'Unknown')}"),
-                    ]
-                )
-            ],
-            className="mb-2",
-        )
-        timeline_items.append(item)
-
-    return html.Div(
-        [
-            html.H5("Trajectory Timeline", className="mb-3"),
-            html.Div(timeline_items, className="sketch-timeline"),
-        ]
     )

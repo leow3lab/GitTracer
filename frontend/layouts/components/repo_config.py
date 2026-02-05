@@ -1,17 +1,15 @@
 """Repository configuration component for GitTracer."""
 
 import os
-from dash import html, dcc
+from dash import html
 import dash_bootstrap_components as dbc
+
+_ALERT_COLORS = {"success": "success", "error": "danger", "warning": "warning", "info": "info"}
 
 
 def create_repo_config():
-    """
-    Create the repository configuration card component.
-
-    Returns:
-        dbc.Card: Configuration card with repo path, branch, and top_k inputs
-    """
+    """Create the repository configuration card component."""
+    label_style = {"fontFamily": "inherit"}
     return dbc.Card(
         [
             dbc.CardHeader(
@@ -20,34 +18,27 @@ def create_repo_config():
             ),
             dbc.CardBody(
                 [
-                    # Repository Path Input
                     html.Label(
-                        "Local Repository Path:",
+                        "Repository Path (Local Path or GitHub URL):",
                         className="fw-bold mb-2",
-                        style={"fontFamily": "inherit"},
+                        style=label_style,
                     ),
                     dbc.Input(
                         id="repo-path-input",
-                        placeholder="e.g., /path/to/your/repo",
+                        placeholder="e.g., /path/to/vllm-ascend or https://github.com/vllm-project/vllm-ascend",
                         type="text",
                         value=os.getcwd(),
                         className="sketch-input mb-3",
                     ),
-                    # Branch Name Input
-                    html.Label(
-                        "Branch Name:", className="fw-bold mb-2", style={"fontFamily": "inherit"}
-                    ),
+                    html.Label("Branch Name:", className="fw-bold mb-2", style=label_style),
                     dbc.Input(
                         id="branch-name-input",
                         value="main",
                         type="text",
                         className="sketch-input mb-3",
                     ),
-                    # Top K Commits Input
                     html.Label(
-                        "Number of Commits to Analyze:",
-                        className="fw-bold mb-2",
-                        style={"fontFamily": "inherit"},
+                        "Number of Commits to Analyze:", className="fw-bold mb-2", style=label_style
                     ),
                     dbc.Input(
                         id="top-k-input",
@@ -57,7 +48,6 @@ def create_repo_config():
                         max=1000,
                         className="sketch-input mb-3",
                     ),
-                    # Analyze Button
                     dbc.Button(
                         html.Div([html.I(className="bi bi-github me-2"), "Fetch & Analyze"]),
                         id="btn-fetch-commits",
@@ -65,9 +55,8 @@ def create_repo_config():
                         size="lg",
                         className="sketch-button w-100",
                     ),
-                    # Help Text
                     html.Small(
-                        "Enter a local Git repository path to fetch commit history.",
+                        "Tip: if fetch fails, try again or verify `git clone` works in your terminal with the same URL first.",
                         className="text-muted mt-3 d-block",
                         style={"fontStyle": "italic"},
                     ),
@@ -79,22 +68,11 @@ def create_repo_config():
 
 
 def create_status_alert(message, alert_type="info"):
-    """
-    Create a status alert component.
-
-    Args:
-        message: The message to display
-        alert_type: One of 'success', 'error', 'warning', 'info'
-
-    Returns:
-        dbc.Alert: Alert component with sketch styling
-    """
-    color_map = {"success": "success", "error": "danger", "warning": "warning", "info": "info"}
-
+    """Create a status alert component."""
     return dbc.Alert(
         message,
         id="status-alert",
-        color=color_map.get(alert_type, "info"),
+        color=_ALERT_COLORS.get(alert_type, "info"),
         className="sketch-alert",
         dismissable=True,
         is_open=True,
