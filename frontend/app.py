@@ -20,7 +20,7 @@ def create_app(name="GitTracer"):
         name,
         external_stylesheets=get_external_stylesheets(),
         suppress_callback_exceptions=True,
-        title="GitTracer - SWE Trajectory Analysis"
+        title="GitTracer - SWE Trajectory Analysis",
     )
 
     app.layout = create_layout()

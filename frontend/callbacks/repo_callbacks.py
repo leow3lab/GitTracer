@@ -29,7 +29,7 @@ def validate_repo_path(path):
     if not os.path.exists(path):
         return False, f"Path does not exist: {path}"
 
-    git_dir = os.path.join(path, '.git')
+    git_dir = os.path.join(path, ".git")
     if not os.path.exists(git_dir):
         return False, f"Not a Git repository (no .git directory found)"
 
@@ -43,15 +43,20 @@ def register_callbacks(app):
     Args:
         app: Dash application instance
     """
+
     @app.callback(
-        [Output("stored-commits", "data"),
-         Output("status-container", "children"),
-         Output("commit-table-container", "children")],
+        [
+            Output("stored-commits", "data"),
+            Output("status-container", "children"),
+            Output("commit-table-container", "children"),
+        ],
         [Input("btn-fetch-commits", "n_clicks")],
-        [State("repo-path-input", "value"),
-         State("branch-name-input", "value"),
-         State("top-k-input", "value")],
-        prevent_initial_call=False
+        [
+            State("repo-path-input", "value"),
+            State("branch-name-input", "value"),
+            State("top-k-input", "value"),
+        ],
+        prevent_initial_call=False,
     )
     def fetch_commits(n_clicks, repo_path, branch, top_k):
         """Fetch commits from the specified repository."""
@@ -79,7 +84,11 @@ def register_callbacks(app):
                 return None, dbc.Alert(f"Error fetching commits: {error}", color="danger"), ""
 
             if not commits:
-                return None, dbc.Alert(f"No commits found in branch '{branch}'", color="warning"), ""
+                return (
+                    None,
+                    dbc.Alert(f"No commits found in branch '{branch}'", color="warning"),
+                    "",
+                )
 
             # Import here to avoid circular dependency
             from frontend.layouts.components import create_commit_table
@@ -88,8 +97,10 @@ def register_callbacks(app):
 
             return (
                 commits,
-                dbc.Alert(f"Successfully loaded {len(commits)} commits from '{branch}'", color="success"),
-                table
+                dbc.Alert(
+                    f"Successfully loaded {len(commits)} commits from '{branch}'", color="success"
+                ),
+                table,
             )
 
         except Exception as e:

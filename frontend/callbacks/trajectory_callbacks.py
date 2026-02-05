@@ -12,12 +12,12 @@ def register_callbacks(app):
     Args:
         app: Dash application instance
     """
+
     @app.callback(
-        [Output("commit-detail-content", "children"),
-         Output("selected-commit", "data")],
+        [Output("commit-detail-content", "children"), Output("selected-commit", "data")],
         [Input("commit-table", "derived_virtual_selected_rows")],
         [State("stored-commits", "data")],
-        prevent_initial_call=True
+        prevent_initial_call=True,
     )
     def display_commit_detail(selected_rows, stored_commits):
         """Display detailed view of selected commit."""
@@ -33,8 +33,7 @@ def register_callbacks(app):
         commit_data = stored_commits[row_idx]
 
         detail_view = create_commit_detail_with_markdown(
-            commit_data,
-            idx=commit_data.get('idx', row_idx + 1)
+            commit_data, idx=commit_data.get("idx", row_idx + 1)
         )
 
         return detail_view, commit_data
