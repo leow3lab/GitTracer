@@ -44,3 +44,10 @@ def test_commit_table_component():
     ]
     table = create_commit_table(sample_data)
     assert table is not None
+
+
+def test_trajectory_view_component():
+    """Verify trajectory view component"""
+    from frontend.layouts.components.trajectory_view import create_trajectory_view
+    view = create_trajectory_view([])
+    assert view is not None
