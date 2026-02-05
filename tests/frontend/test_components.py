@@ -25,3 +25,12 @@ def test_dash_app_factory():
     app = create_app()
     assert app is not None
     assert hasattr(app, 'layout')
+
+
+def test_repo_config_component():
+    """Verify repository configuration component"""
+    from frontend.layouts.components.repo_config import create_repo_config
+    component = create_repo_config()
+    assert component is not None
+    # Should have input fields for repo path, branch, and top_k
+    assert hasattr(component, 'children')
