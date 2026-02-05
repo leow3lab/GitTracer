@@ -3,6 +3,7 @@
 from dash import Dash
 import dash_bootstrap_components as dbc
 from frontend.layouts.main_layout import create_layout, get_external_stylesheets
+from frontend.callbacks import repo_callbacks, navigation_callbacks, trajectory_callbacks
 
 
 def create_app(name="GitTracer"):
@@ -23,5 +24,10 @@ def create_app(name="GitTracer"):
     )
 
     app.layout = create_layout()
+
+    # Register all callbacks
+    repo_callbacks.register_callbacks(app)
+    navigation_callbacks.register_callbacks(app)
+    trajectory_callbacks.register_callbacks(app)
 
     return app

@@ -3,6 +3,7 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 from frontend.styles import get_stylesheet
+from frontend.layouts.components import create_repo_config
 
 
 def create_layout():
@@ -22,8 +23,8 @@ def create_layout():
             dbc.Col([
                 html.H1(
                     "GitTracer",
-                    className="sketch-header text-center",
-                    style={'fontSize': '2.5rem', 'marginBottom': '0.5rem'}
+                    className="text-center mb-2",
+                    style={'fontSize': '2.5rem', 'fontWeight': 'bold'}
                 ),
                 html.P(
                     "SWE Trajectory Analysis Platform",
@@ -37,7 +38,7 @@ def create_layout():
         dbc.Row([
             # Left Column - Configuration
             dbc.Col([
-                html.Div(id="repo-config-container")
+                create_repo_config()
             ], width=4, lg=4),
 
             # Right Column - Tabs and Content
