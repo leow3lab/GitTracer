@@ -34,3 +34,13 @@ def test_repo_config_component():
     assert component is not None
     # Should have input fields for repo path, branch, and top_k
     assert hasattr(component, 'children')
+
+
+def test_commit_table_component():
+    """Verify commit table component"""
+    from frontend.layouts.components.commit_table import create_commit_table
+    sample_data = [
+        {'idx': 1, 'commit': 'abc123', 'subject': 'Test commit', 'author': 'Test Author'}
+    ]
+    table = create_commit_table(sample_data)
+    assert table is not None
